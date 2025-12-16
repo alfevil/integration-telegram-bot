@@ -5,21 +5,13 @@ import urllib.request
 import urllib.parse
 import ssl
 
-# ВСТАВЬ СЮДА СВОЙ ТОКЕН ОТ BOTFATHER
 TOKEN = "8462270023:AAF-I8eji50JsfKxOXUfd-fA0l0pOS7u194"
 
-# Базовый URL для запросов к Telegram Bot API
 BASE_URL = f"https://api.telegram.org/bot{TOKEN}/"
 
 SSL_CONTEXT = ssl._create_unverified_context()
 
-# ---------- НИЗКОУРОВНЕВАЯ РАБОТА С TELEGRAM API ----------
-
 def call_telegram(method: str, params: dict | None = None) -> dict:
-    """
-    Вызов метода Telegram Bot API через HTTP POST.
-    Без сторонних библиотек — чистый Python.
-    """
     if params is None:
         params = {}
 
@@ -27,7 +19,6 @@ def call_telegram(method: str, params: dict | None = None) -> dict:
     url = BASE_URL + method
 
     req = urllib.request.Request(url, data=data)
-    # ВАЖНО: передаём context=SSL_CONTEXT, чтобы не проверять сертификаты
     with urllib.request.urlopen(req, timeout=60, context=SSL_CONTEXT) as response:
         resp_data = response.read().decode("utf-8")
         return json.loads(resp_data)
@@ -72,9 +63,6 @@ def edit_message(
 def answer_callback_query(callback_query_id: str) -> None:
     call_telegram("answerCallbackQuery", {"callback_query_id": callback_query_id})
 
-
-# ---------- ДАННЫЕ ДЛЯ ВОПРОСОВ ----------
-
 QUIZ_QUESTIONS = [
     (
         "Что такое системная интеграция?",
@@ -99,9 +87,6 @@ QUIZ_QUESTIONS = [
         "взаимодействующих модулей/сервисов.",
     ),
 ]
-
-
-# ---------- ПОСТРОЕНИЕ МЕНЮ ----------
 
 def main_menu_text() -> str:
     return (
@@ -131,10 +116,6 @@ def build_main_menu() -> dict:
 
 
 def build_back_menu(extra_rows: list | None = None) -> dict:
-    """
-    Клавиатура с кнопкой «Главное меню».
-    Можно добавить дополнительные ряды кнопок через extra_rows.
-    """
     keyboard: list[list[dict]] = []
     if extra_rows:
         keyboard.extend(extra_rows)
@@ -155,9 +136,6 @@ def build_quiz_keyboard() -> dict:
     return build_back_menu(
         extra_rows=[[{"text": "🔁 Ещё вопрос", "callback_data": "quiz"}]]
     )
-
-
-# ---------- ОБРАБОТЧИКИ КОМАНД ----------
 
 def handle_start(chat_id: int) -> None:
     send_message(
@@ -215,7 +193,6 @@ def handle_grade(chat_id: int, text: str) -> None:
         send_message(chat_id, "Балл за экзамен должен быть от 0 до 100.")
         return
 
-    # Простая условная формула
     total = labs * 5 + practices * 3 + exam * 0.4
 
     if total >= 90:
@@ -239,8 +216,6 @@ def handle_grade(chat_id: int, text: str) -> None:
     send_message(chat_id, text_out, parse_mode="HTML")
 
 
-# ---------- ОБРАБОТКА НАЖАТИЙ НА КНОПКИ ----------
-
 def handle_callback(callback_query: dict) -> None:
     callback_id = callback_query["id"]
     data = callback_query.get("data")
@@ -253,8 +228,6 @@ def handle_callback(callback_query: dict) -> None:
         return
 
     answer_callback_query(callback_id)
-
-    # Назад в главное меню
     if data == "back_to_menu":
         edit_message(
             chat_id,
@@ -362,7 +335,6 @@ def handle_callback(callback_query: dict) -> None:
             parse_mode="HTML",
         )
 
-    # Мини-тест: вопрос с вариантами
     elif data == "test_q1":
         text = (
             "<b>🧠 Мини-тест</b>\n\n"
@@ -442,9 +414,6 @@ def handle_callback(callback_query: dict) -> None:
             parse_mode="HTML",
         )
 
-
-# ---------- ОБРАБОТКА СООБЩЕНИЙ ----------
-
 def handle_message(message: dict) -> None:
     chat = message.get("chat") or {}
     chat_id = chat.get("id")
@@ -468,8 +437,6 @@ def handle_message(message: dict) -> None:
             "Напиши /start, чтобы открыть главное меню.",
         )
 
-
-# ---------- ОСНОВНОЙ ЦИКЛ POLLING ----------
 
 def main() -> None:
     offset = None
